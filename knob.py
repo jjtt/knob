@@ -3,13 +3,50 @@
 
 import evdev
 import sys
+import time
+import threading
+
+SINGLE=False
+DOUBLE=False
+WHAT=None
+PREVTIME=0
 
 def printDevices():
   devices = [evdev.InputDevice(fn) for fn in evdev.list_devices()]
   for device in devices:
     print(device.fn, device.name, device.phys)
 
+def timer():
+  global SINGLE
+  global DOUBLE
+  global WHAT
+  global PREVTIME
+  next_call = time.time()
+  while True:
+    if time.time() - PREVTIME > 0.2:
+      if SINGLE:
+        if WHAT=='KEY_VOLUMEUP':
+          print('play')
+        elif WHAT=='KEY_VOLUMEDOWN':
+          print('pause')
+        SINGLE=False
+      elif DOUBLE:
+        if WHAT=='KEY_VOLUMEUP':
+          print('next')
+        elif WHAT=='KEY_VOLUMEDOWN':
+          print('prev')
+        DOUBLE=False
+
+    next_call = next_call + 0.5
+    time.sleep(next_call - time.time())
+
+
 def main(argv=None):
+  global SINGLE
+  global DOUBLE
+  global WHAT
+  global PREVTIME
+
   if argv is None:
     argv = sys.argv
 
@@ -18,36 +55,36 @@ def main(argv=None):
     printDevices()
     return
 
+  timerThread = threading.Thread(target=timer)
+  timerThread.daemon = True
+  timerThread.start()
+
   devicePath = argv[1]
 
   device = evdev.InputDevice(devicePath)
 
-  preveventtime = 0
   preveventtype = None
 
   for event in device.read_loop():
     if event.type == evdev.ecodes.EV_KEY:
       keyevent = evdev.categorize(event)
+
       if keyevent.keystate == keyevent.key_up:
+
         time = keyevent.event.timestamp()
 
-        double = False
-        if time - preveventtime < 0.2 and keyevent.keycode == preveventtype:
-          double = True
+        WHAT = keyevent.keycode
 
-        preveventtime = time
-        preveventtype = keyevent.keycode
-
-        if double:
-          if keyevent.keycode == "KEY_VOLUMEUP":
-            print("next")
-          elif keyevent.keycode == "KEY_VOLUMEDOWN":
-            print("prev")
+        if time - PREVTIME < 0.2 and WHAT == preveventtype:
+          SINGLE = False
+          DOUBLE = True
         else:
-          if keyevent.keycode == "KEY_VOLUMEUP":
-            print("play")
-          elif keyevent.keycode == "KEY_VOLUMEDOWN":
-            print("pause")
+          SINGLE = True
+          DOUBLE = False
+
+        PREVTIME = time
+        preveventtype = WHAT
+
 
 
 
