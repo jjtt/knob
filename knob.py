@@ -42,7 +42,10 @@ def timer():
         DOUBLE=False
 
     next_call = next_call + 0.5
-    time.sleep(next_call - time.time())
+    sleep_time = next_call - time.time()
+    if sleep_time < 0:
+      sleep_time = 0
+    time.sleep(sleep_time)
 
 
 def main(argv=None):
