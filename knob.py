@@ -5,6 +5,7 @@ import evdev
 import sys
 import time
 import threading
+import subprocess
 
 SINGLE=False
 DOUBLE=False
@@ -16,6 +17,9 @@ def printDevices():
   for device in devices:
     print(device.fn, device.name, device.phys)
 
+def mpc(command):
+  subprocess.call(['/usr/bin/mpc', command])
+
 def timer():
   global SINGLE
   global DOUBLE
@@ -26,15 +30,15 @@ def timer():
     if time.time() - PREVTIME > 0.2:
       if SINGLE:
         if WHAT=='KEY_VOLUMEUP':
-          print('play')
+          mpc('play')
         elif WHAT=='KEY_VOLUMEDOWN':
-          print('pause')
+          mpc('pause')
         SINGLE=False
       elif DOUBLE:
         if WHAT=='KEY_VOLUMEUP':
-          print('next')
+          mpc('next')
         elif WHAT=='KEY_VOLUMEDOWN':
-          print('prev')
+          mpc('prev')
         DOUBLE=False
 
     next_call = next_call + 0.5
