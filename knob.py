@@ -8,7 +8,7 @@ import threading
 import subprocess
 
 SINGLE=False
-DOUBLE=False
+MANY=False
 WHAT=None
 PREVTIME=0
 
@@ -22,7 +22,7 @@ def mpc(command):
 
 def timer():
   global SINGLE
-  global DOUBLE
+  global MANY
   global WHAT
   global PREVTIME
   next_call = time.time()
@@ -34,12 +34,12 @@ def timer():
         elif WHAT=='KEY_VOLUMEDOWN':
           mpc('pause')
         SINGLE=False
-      elif DOUBLE:
+      elif MANY:
         if WHAT=='KEY_VOLUMEUP':
           mpc('next')
         elif WHAT=='KEY_VOLUMEDOWN':
           mpc('prev')
-        DOUBLE=False
+        MANY=False
 
     next_call = next_call + 0.5
     sleep_time = next_call - time.time()
@@ -50,7 +50,7 @@ def timer():
 
 def main(argv=None):
   global SINGLE
-  global DOUBLE
+  global MANY
   global WHAT
   global PREVTIME
 
@@ -72,22 +72,32 @@ def main(argv=None):
 
   preveventtype = None
 
+  counter = 0
+
   for event in device.read_loop():
     if event.type == evdev.ecodes.EV_KEY:
       keyevent = evdev.categorize(event)
 
       if keyevent.keystate == keyevent.key_up:
 
+        if SINGLE == False and MANY == False:
+          # Timer has handled the recognized event. Reset.
+          counter = 0
+          preveventtype = None
+
         time = keyevent.event.timestamp()
 
         WHAT = keyevent.keycode
 
         if time - PREVTIME < 0.2 and WHAT == preveventtype:
-          SINGLE = False
-          DOUBLE = True
+          counter += 1
+          if counter > 3:
+            SINGLE = False
+            MANY = True
         else:
+          counter = 0
           SINGLE = True
-          DOUBLE = False
+          MANY = False
 
         PREVTIME = time
         preveventtype = WHAT
