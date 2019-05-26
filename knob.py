@@ -17,6 +17,15 @@ def printDevices():
   for device in devices:
     print(device.fn, device.name, device.phys)
 
+def guessDevice():
+  devices = [evdev.InputDevice(fn) for fn in evdev.list_devices()]
+  for device in devices:
+    if device.name == 'iMON Panel, Knob and Mouse(15c2:0038)':
+      print('Guessing device: %s' % device.fn)
+      return device.fn
+  print('Not found!')
+  return
+
 def mpc(command):
   subprocess.call(['/usr/bin/mpc', command])
 
@@ -62,11 +71,14 @@ def main(argv=None):
     printDevices()
     return
 
+  if argv[1] == 'guess':
+    devicePath = guessDevice()
+  else:
+    devicePath = argv[1]
+
   timerThread = threading.Thread(target=timer)
   timerThread.daemon = True
   timerThread.start()
-
-  devicePath = argv[1]
 
   device = evdev.InputDevice(devicePath)
 
